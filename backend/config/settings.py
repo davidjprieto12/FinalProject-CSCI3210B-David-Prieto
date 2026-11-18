@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'events',
     'corsheaders',
     'django_filters',
+    'boards',
 ]
 
 MIDDLEWARE = [

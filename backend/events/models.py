@@ -26,6 +26,9 @@ class Event(models.Model):
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
         related_name="created_events",
     )
+    board = models.ForeignKey(
+        "boards.Board", on_delete=models.CASCADE, related_name="events"
+    )
 
     attendees = models.ManyToManyField(
         settings. AUTH_USER_MODEL, through="RSVP",
