@@ -6,9 +6,11 @@ from django.utils import timezone
 
 from accounts.models import User
 from events.models import ActivityLog, Comment, Event
+from boards.models import Board, Membership
 from events.services import change_status, set_rsvp
 
 DEMO_PASSWORD = "demo1234"
+DEMO_BOARD_CODE = "DEMO-BOARD"
 
 # The demo_ prefix means the seed never overwrites an account a real person registered
 DEMO_USERS = [
@@ -106,17 +108,29 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         users = self._create_users()
+        board = self._create_board(users)
         # Clear earlier demo events (comments, RSVPs, and history go with them)
-        Event.objects.filter(created_by__in=list(users.values())).delete()
+        Event.objects.filter(board=board).delete()
         for spec in EVENTS:
-            self._create_event(spec, users)
+            self._create_event(spec, users, board)
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Seeded {len(users)} demo users and {len(EVENTS)} events. "
+                f"Seeded {len(users)} demo users and {len(EVENTS)} events on the "
+                f"'{board.name}' board (invite code {DEMO_BOARD_CODE}). "
                 f"Log in as demo_admin or demo_alex with password {DEMO_PASSWORD}."
             )
         )
+
+    def _create_board(self, users):
+        board, _ = Board.objects.update_or_create(
+            invite_code=DEMO_BOARD_CODE,
+            defaults={"name": "Demo Friends", "owner": users["demo_admin"]},
+        )
+        for username, user in users.items():
+            role = Membership.Role.OWNER if username == "demo_admin" else Membership.Role.MEMBER
+            Membership.objects.update_or_create(board=board, user=user, defaults={"role": role})
+        return board
 
     def _create_users(self):
         users = {}
@@ -129,7 +143,7 @@ class Command(BaseCommand):
             users[username] = user
         return users
 
-    def _create_event(self, spec, users):
+    def _create_event(self, spec, users, board):
         creator = users[spec["creator"]]
         mover = users[spec.get("mover", spec["creator"])]
         starts_at = at(spec["days"]) if spec.get("days") is not None else None
@@ -141,6 +155,7 @@ class Command(BaseCommand):
             starts_at=starts_at,
             max_attendees=spec.get("max_attendees"),
             created_by=creator,
+            board=board,
         )
         ActivityLog.objects.create(
             event=event, actor=creator, action="created", new_value=event.status

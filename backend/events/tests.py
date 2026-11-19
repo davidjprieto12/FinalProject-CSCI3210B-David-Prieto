@@ -6,25 +6,39 @@ from rest_framework.exceptions import ValidationError, NotFound
 from rest_framework.test import APITestCase
 
 from accounts.models import User
+from boards.models import Board, Membership
 from .models import ActivityLog, Event, RSVP
 from .services import change_status, remove_rsvp, set_rsvp
 
 from io import StringIO
 from django.core.management import call_command
 
+def make_board(owner, name="Test board"):
+    board = Board.objects.create(name=name, owner=owner)
+    Membership.objects.create(board=board, user=owner, role=Membership.Role.OWNER)
+    return board
+
+
+def make_event(**fields):
+    # Create an event, putting it on a board owned by its creator if no board is given
+    if "board" not in fields:
+        owner = fields.get("created_by") or User.objects.get_or_create(username="board_owner")[0]
+        fields["board"] = Board.objects.filter(owner=owner).first() or make_board(owner)
+    return Event.objects.create(**fields)
+
 class ChangeStatusTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="alex", password="testpass123")
 
     def test_legal_move_saves_status_and_logs(self):
-        event = Event.objects.create(title="Pizza", status="idea")
+        event = make_event(title="Pizza", status="idea")
         change_status(event, "planning", self.user)
         event.refresh_from_db()
         self.assertEqual(event.status, "planning")
         self.assertEqual(ActivityLog.objects.filter(event=event).count(), 1)
 
     def test_illegal_move_is_rejected_and_not_logged(self):
-        event = Event.objects.create(title="Pizza", status="idea")
+        event = make_event(title="Pizza", status="idea")
         with self.assertRaises(ValidationError):
             change_status(event, "done", self.user)
         event.refresh_from_db()
@@ -32,7 +46,7 @@ class ChangeStatusTests(TestCase):
         self.assertEqual(ActivityLog.objects.count(), 0)
 
     def test_confirming_requires_date_and_location(self):
-        event = Event.objects.create(title="Pizza", status="open")
+        event = make_event(title="Pizza", status="open")
         with self.assertRaises(ValidationError):
             change_status(event, "confirmed", self.user)
 
@@ -44,7 +58,7 @@ class RsvpTests(TestCase):
     def make_event(self, **kwargs):
         fields = {"title": "Pizza", "status": "open", "max_attendees": 1}
         fields.update(kwargs)
-        return Event.objects.create(**fields)
+        return make_event(**fields)
 
     def test_going_saves_rsvp(self):
         event = self.make_event()
@@ -85,9 +99,10 @@ class EventEditTests(APITestCase):
     def setUp(self):
         self.alex = User.objects.create_user(username="alex", password="testpass123")
         self.sam = User.objects.create_user(username="sam", password="testpass123")
-        self.event = Event.objects.create(
+        self.event = make_event(
             title="Pizza", status="open", max_attendees=5, created_by=self.alex
         )
+        Membership.objects.create(board=self.event.board, user=self.sam)
         self.url = f"/api/events/{self.event.pk}/"
 
     def test_creator_can_edit(self):
@@ -111,7 +126,8 @@ class EventEditTests(APITestCase):
 class CommentApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="alex", password="testpass123")
-        self.event = Event.objects.create(title="Pizza", status="open")
+        self.event = make_event(title="Pizza", status="open")
+        Membership.objects.create(board=self.event.board, user=self.user)
         self.url = f"/api/events/{self.event.pk}/comments/"
 
     def test_requires_login(self):
@@ -141,15 +157,15 @@ class EventListQueryTests(APITestCase):
 
     def test_query_count_does_not_grow_with_events(self):
         for i in range(3):
-            Event.objects.create(title=f"Event {i}", created_by=self.user)
+            make_event(title=f"Event {i}", created_by=self.user)
         few = self.count_list_queries()
         for i in range(10):
-            Event.objects.create(title=f"More {i}", created_by=self.user)
+            make_event(title=f"More {i}", created_by=self.user)
         many = self.count_list_queries()
         self.assertEqual(few, many)
 
     def test_list_includes_creator_name(self):
-        Event.objects.create(title="Pizza", created_by=self.user)
+        make_event(title="Pizza", created_by=self.user)
         response = self.client.get("/api/events/")
         self.assertEqual(response.data[0]["creator"]["username"], "alex")
 
@@ -159,7 +175,8 @@ class ActivityApiTests(APITestCase):
         self.client.force_authenticate(self.user)
 
     def test_create_and_status_change_are_both_logged(self):
-        created = self.client.post("/api/events/", {"title": "Pizza"}, format="json")
+        board = make_board(self.user)
+        created = self.client.post("/api/events/", {"title": "Pizza", "board": board.pk}, format="json")
         self.assertEqual(created.status_code, 201)
         self.assertEqual(created.data["creator"]["username"], "alex")
 
@@ -177,13 +194,13 @@ class StaleEventTests(TestCase):
         self.user = User.objects.create_user(username="alex", password="testpass123")
 
     def test_status_change_on_deleted_event_raises_not_found(self):
-        stale = Event.objects.create(title="Pizza", status="idea")
+        stale = make_event(title="Pizza", status="idea")
         Event.objects.filter(pk=stale.pk).delete()  # deleted after the view loaded it
         with self.assertRaises(NotFound):
             change_status(stale, "planning", self.user)
 
     def test_rsvp_on_deleted_event_raises_not_found(self):
-        stale = Event.objects.create(title="Pizza", status="open")
+        stale = make_event(title="Pizza", status="open")
         Event.objects.filter(pk=stale.pk).delete()
         with self.assertRaises(NotFound):
             set_rsvp(stale, self.user, "going")
@@ -215,9 +232,10 @@ class EventFilterTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="alex", password="testpass123")
         self.client.force_authenticate(self.user)
-        Event.objects.create(title="Pizza night", status="idea", location="Alex's place")
-        Event.objects.create(title="Beach day", status="open", description="Bring sunscreen")
-        Event.objects.create(title="Board games", status="open", location="Downtown")
+        self.board = make_board(self.user)
+        make_event(title="Pizza night", status="idea", location="Alex's place", board=self.board)
+        make_event(title="Beach day", status="open", description="Bring sunscreen", board=self.board)
+        make_event(title="Board games", status="open", location="Downtown", board=self.board)
 
     def titles(self, **params):
         response = self.client.get("/api/events/", params)
@@ -244,3 +262,76 @@ class EventFilterTests(APITestCase):
     def test_invalid_status_returns_400(self):
         response = self.client.get("/api/events/", {"status": "nonsense"})
         self.assertEqual(response.status_code, 400)
+
+class BoardIsolationTests(APITestCase):
+    def setUp(self):
+        self.alex = User.objects.create_user(username="alex", password="testpass123")
+        self.sam = User.objects.create_user(username="sam", password="testpass123")
+        self.alex_board = make_board(self.alex)
+        self.sam_board = make_board(self.sam)
+        self.alex_event = make_event(
+            title="Alex's event", board=self.alex_board, created_by=self.alex, status="open"
+        )
+        self.client.force_authenticate(self.sam)  # Sam is NOT on Alex's board
+
+    def test_list_excludes_other_boards_events(self):
+        response = self.client.get("/api/events/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_cannot_read_other_boards_event(self):
+        response = self.client.get(f"/api/events/{self.alex_event.pk}/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_cannot_use_sub_resources_of_other_boards_events(self):
+        base = f"/api/events/{self.alex_event.pk}"
+        self.assertEqual(self.client.get(f"{base}/comments/").status_code, 404)
+        self.assertEqual(
+            self.client.post(f"{base}/comments/", {"body": "hi"}, format="json").status_code, 404
+        )
+        self.assertEqual(self.client.get(f"{base}/activity/").status_code, 404)
+        self.assertEqual(
+            self.client.put(f"{base}/rsvp/", {"response": "going"}, format="json").status_code, 404
+        )
+        self.assertEqual(
+            self.client.post(f"{base}/transition/", {"status": "confirmed"}, format="json").status_code,
+            404,
+        )
+
+    def test_cannot_edit_or_delete_other_boards_event(self):
+        url = f"/api/events/{self.alex_event.pk}/"
+        self.assertEqual(self.client.patch(url, {"title": "x"}, format="json").status_code, 404)
+        self.assertEqual(self.client.delete(url).status_code, 404)
+
+    def test_cannot_create_event_on_other_board(self):
+        response = self.client.post(
+            "/api/events/", {"title": "Sneaky", "board": self.alex_board.pk}, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("board", response.data)
+
+    def test_foreign_and_missing_boards_give_the_same_error(self):
+        foreign = self.client.post(
+            "/api/events/", {"title": "x", "board": self.alex_board.pk}, format="json"
+        )
+        missing = self.client.post("/api/events/", {"title": "x", "board": 99999}, format="json")
+        self.assertEqual(foreign.data, missing.data)
+
+    def test_board_list_and_detail_are_private(self):
+        listing = self.client.get("/api/boards/")
+        self.assertEqual([b["id"] for b in listing.data], [self.sam_board.pk])
+        self.assertEqual(self.client.get(f"/api/boards/{self.alex_board.pk}/").status_code, 404)
+
+    def test_joining_grants_access(self):
+        join = self.client.post(
+            "/api/boards/join/", {"invite_code": self.alex_board.invite_code}, format="json"
+        )
+        self.assertEqual(join.status_code, 201)
+        self.assertEqual(self.client.get(f"/api/events/{self.alex_event.pk}/").status_code, 200)
+
+    def test_non_creator_member_cannot_delete_but_owner_can(self):
+        Membership.objects.create(board=self.alex_board, user=self.sam)  # Sam joins as member
+        url = f"/api/events/{self.alex_event.pk}/"
+        self.assertEqual(self.client.delete(url).status_code, 403)
+        self.client.force_authenticate(self.alex)  # Alex is the creator and the owner
+        self.assertEqual(self.client.delete(url).status_code, 204)

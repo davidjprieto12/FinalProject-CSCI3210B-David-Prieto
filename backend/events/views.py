@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from . import services
-from .permissions import IsCreatorOrAdmin
+from .permissions import IsCreatorOrBoardOwner
 from .models import Event, RSVP, ActivityLog
 from .serializers import EventSerializer, TransitionSerializer, RSVPInputSerializer, CommentSerializer, ActivityLogSerializer
 
@@ -17,23 +17,28 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 
 from .filters import EventFilter
 
+from boards.models import Membership
+
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated, IsCreatorOrAdmin]
+    permission_classes = [IsAuthenticated, IsCreatorOrBoardOwner]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = EventFilter
     search_fields = ["title", "description", "location"]
     ordering_fields = ["created_at", "starts_at"]
 
     def get_queryset(self):
+        user = self.request.user
         my_rsvp = RSVP.objects.filter(
-            event=OuterRef("pk"), user=self.request.user
-        ).values("response")[:1]
+            event=OuterRef("pk"), user=user).values("response")[:1]
         return (
-            Event.objects.select_related("created_by")
+            Event.objects.filter(
+                board_id__in=Membership.objects.filter(user=user).values("board_id")
+            )
+            .select_related("created_by")
             .annotate(
                 going_count=Count("rsvps", filter=Q(rsvps__response="going")),
-                my_rsvp=Subquery(my_rsvp)
+                my_rsvp=Subquery(my_rsvp),
             )
             .order_by("-created_at")
         )

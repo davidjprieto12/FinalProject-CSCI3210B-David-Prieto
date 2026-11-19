@@ -1,18 +1,27 @@
 from rest_framework import serializers
 from .models import Event, RSVP, Comment, ActivityLog
 from accounts.serializers import UserSerializer
+from boards.models import Board, Membership
+
+class MemberBoardField(serializers.PrimaryKeyRelatedField):
+    # Accepts only boaords the current user belongs to
+    def get_queryset(self):
+        user = self.context["request"].user
+        return Board.objects.filter(pk__in=Membership.objects.filter(user=user).values("board_id"))
+
 
 class EventSerializer(serializers.ModelSerializer):
     going_count = serializers.SerializerMethodField()
     my_rsvp = serializers.SerializerMethodField()
     creator = UserSerializer(source="created_by", read_only=True)
+    board = MemberBoardField(error_messages={"does_not_exist": "Board not found."})
 
 
     class Meta:
         model = Event
         fields = [
             "id", "title", "description", "location", "starts_at", "status",
-            "max_attendees", "created_by", "creator", "created_at", "going_count", "my_rsvp",
+            "max_attendees", "created_by", "board", "creator", "created_at", "going_count", "my_rsvp",
         ]
         read_only_fields = ["created_by", "status"]
 
@@ -41,6 +50,11 @@ class EventSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     f"{going} people are already going, so capacity can't be lower than that."
                 )
+        return value
+
+    def validate_board(self, value):
+        if self.instance is not None and value != self.instance.board:
+            raise serializers.ValidationError("An event can't be moved to another board.")
         return value
 
 class TransitionSerializer(serializers.Serializer):
