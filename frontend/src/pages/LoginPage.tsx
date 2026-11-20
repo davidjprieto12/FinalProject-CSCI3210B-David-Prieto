@@ -13,7 +13,6 @@ export function LoginPage() {
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
-  const [joinCode, setJoinCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [fields, setFields] = useState<FieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -34,7 +33,6 @@ export function LoginPage() {
           username,
           display_name: displayName,
           password,
-          join_code: joinCode,
         });
         toast.success("Account created!");
       }
@@ -64,10 +62,6 @@ export function LoginPage() {
             <label htmlFor="displayName">Display name</label>
             <input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
             {showErrors("display_name")}
-
-            <label htmlFor="joinCode">Join code</label>
-            <input id="joinCode" value={joinCode} onChange={(e) => setJoinCode(e.target.value)} required />
-            {showErrors("join_code")}
           </>
         )}
 

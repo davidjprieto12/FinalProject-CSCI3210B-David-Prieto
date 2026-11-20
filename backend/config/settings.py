@@ -111,8 +111,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Authentication
-JOIN_CODE = os.environ["JOIN_CODE"]
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

@@ -14,7 +14,6 @@ export interface RegisterInput {
     username: string;
     display_name: string;
     password: string;
-    join_code: string;
 }
 
 export interface RegisterResponse {

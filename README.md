@@ -72,13 +72,15 @@ The project submission for the final builds upon the app that I built for the mi
     > ```
     - Runs on: http://localhost:5173
     
-- **Account Creation:**
+- **Account & Board Creation:**
     - Upon reaching the front page, click the "Need an account? Register" button below the login prompt
     - Enter the following fields:
         - Username: the username used for login
         - Display Name: how users will see you on the platform, e.g. "Created by (Display Name)"
-        - Join Code: the code for the board (given in .env), in the default example.env "friends2026"
         - Password: the password used for login
+    - From here, you will reach a page that either allows you to create or join a board:
+        - Join Board: Enter an existing board's join code (given to all members of the board) to join a board!
+        - Create Board: Create a new board by entering a name for it (e.g. "Book Club") to make your own board!
 
 - **Creating an Admin Account / Seed Data:**
     - Admin accounts are a developer tool, not a feature currently available to be executed by users on the site
