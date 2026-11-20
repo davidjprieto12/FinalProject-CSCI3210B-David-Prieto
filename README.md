@@ -7,7 +7,13 @@ Hangout Board is a full-stack web application meant to address the least fun par
 The project submission for the final builds upon the app that I built for the midterm submission. As such, I will be sure to note any new additions that are a part of the final iteration and were not in the original.
 
 ## Features 
-### (TODO: Add planned features here and a section detailing differences)
+### (TODO: Add implemented features here)
+
+### Improvements Since Last Submission:
+#### Security Improvements:
+#### UI / UX Improvements:
+#### Additional Improvements:
+
 ### Accounts & Access
 - **Registration with a join code:** Only people with the board's code can create an account
 - **JWT login with a persistent session:** Stay logged in across refreshes, with logout
