@@ -93,6 +93,77 @@ button[aria-pressed="true"] {
   outline-offset: 3px;
 }
 
+.app-shell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.5rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-shell-nav,
+.app-shell-account {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.app-shell-board-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-shell-board-picker label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.app-shell-board-picker select {
+  width: clamp(8rem, 22vw, 13rem);
+  min-height: 2.5rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.main-page-link {
+  display: inline-flex;
+  min-height: 2.65rem;
+  align-items: center;
+  padding: 0.5rem 0.85rem;
+  border: 2px solid var(--powder-strong);
+  border-radius: 0.7rem;
+  color: #dceaf3;
+  background: var(--powder-wash);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.main-page-link:hover {
+  border-color: #e0edf5;
+  color: #edf6fc;
+  background: rgba(169, 199, 220, 0.15);
+  transform: translateY(-1px);
+}
+
+.app-shell-account {
+  justify-content: flex-end;
+  gap: 1.25rem;
+}
+
+.app-shell-account > span {
+  color: var(--muted);
+}
+
+.app-shell-account > button {
+  color: var(--powder-strong);
+  border-color: var(--powder);
+  background: transparent;
+}
+
 #root {
   width: min(100% - 2rem, 940px);
   min-height: 100vh;
@@ -449,6 +520,14 @@ code,
 @media (max-width: 620px) {
   #root {
     width: min(100% - 1.25rem, 940px);
+  }
+
+  .app-shell-header {
+    align-items: flex-start;
+  }
+
+  .app-shell-account {
+    justify-content: flex-start;
   }
 
   main > header {

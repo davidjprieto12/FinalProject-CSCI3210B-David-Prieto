@@ -19,7 +19,7 @@ import { NotFoundPage } from "./NotFoundPage";
 export function BoardPage() {
   const { boardId } = useParams<{ boardId: string }>();
   const id = Number(boardId);
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { data: board, error: boardError } = useBoard(id);
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
   const debouncedSearch = useDebouncedValue(filters.search);
@@ -58,17 +58,8 @@ export function BoardPage() {
 
   return (
     <main>
-      <header>
-        <h1>{board?.name ?? "Board"}</h1>
-        <div>
-          <Link to="/">All boards</Link>
-          <Link to={`/boards/${id}/events/new`}>New event</Link>
-          <span>{user?.display_name || user?.username}</span>
-          <button type="button" onClick={logout}>
-            Log out
-          </button>
-        </div>
-      </header>
+     <h1>{board?.name ?? "Board"}</h1>
+     <Link to={`/boards/${id}/events/new`}>New event</Link>
 
       {board && (
         <p>

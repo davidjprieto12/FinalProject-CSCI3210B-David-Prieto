@@ -2,12 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BoardCard } from "../components/BoardCard";
 import { SingleFieldForm } from "../components/SingleFieldForm";
-import { useAuth } from "../hooks/useAuth";
 import { useBoards, useCreateBoard, useJoinBoard } from "../hooks/useBoards";
 import { parseApiError } from "../utils/errors";
 
 export function BoardsPage() {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useBoards();
   const createBoard = useCreateBoard();
@@ -41,15 +39,7 @@ export function BoardsPage() {
 
   return (
     <main>
-      <header>
-        <h1>Your boards</h1>
-        <div>
-          <span>{user?.display_name || user?.username}</span>
-          <button type="button" onClick={logout}>
-            Log out
-          </button>
-        </div>
-      </header>
+      <h1>Your boards</h1>
 
       {isLoading && <p>Loading…</p>}
       {isError && (
