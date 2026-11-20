@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { EventForm } from "../components/EventForm";
 import { useAuth } from "../hooks/useAuth";
 import { useEvent, useUpdateEvent } from "../hooks/useEvents";
+import { useBoard } from "../hooks/useBoards";
 import type { EventInput } from "../types/event";
 import { parseApiError, type FieldErrors, isNotFound } from "../utils/errors";
 import { NotFoundPage } from "../pages/NotFoundPage";
@@ -13,10 +14,11 @@ export function EditEventPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: event, error, isLoading, isError } = useEvent(eventId);
+  const { data: board, isLoading: boardLoading } = useBoard(event ? event.board : NaN);
   const updateEvent = useUpdateEvent();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-  if (isLoading) return <p>Loading…</p>;
+  if (isLoading || boardLoading) return <p>Loading…</p>;
   if (!Number.isFinite(eventId) || (isError && isNotFound(error))) {
     return <NotFoundPage message="That event doesn't exist." />;
   }
@@ -29,7 +31,7 @@ export function EditEventPage() {
     );
   }
 
-  const canEdit = user?.role === "admin" || event.created_by === user?.id;
+  const canEdit = board?.my_role === "owner" || event.created_by === user?.id;
   if (!canEdit) {
     return (
       <main>

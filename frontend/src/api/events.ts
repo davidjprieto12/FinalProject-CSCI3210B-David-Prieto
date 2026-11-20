@@ -1,16 +1,16 @@
 import { api } from "./client";
-import type { HangoutEvent, EventInput, EventStatus, RsvpResponse, EventFilters } from "../types/event";
+import type { HangoutEvent, EventInput, EventStatus, RsvpResponse, EventFilters, NewEventInput } from "../types/event";
 import { EMPTY_FILTERS } from "../types/event";
 
 export const eventsApi = {
-    list: (filters: EventFilters = EMPTY_FILTERS) => {
-        const params: Record<string, string> = {};
+    list: (boardId: number, filters: EventFilters = EMPTY_FILTERS) => {
+        const params: Record<string, string> = { board: String(boardId) };
         const search = filters.search.trim();
         if (search) params.search = search;
         if (filters.status) params.status = filters.status;
         return api.get<HangoutEvent[]>("/events/", { params }).then((r) => r.data);
     },
-    create: (data: EventInput) =>
+    create: (data: NewEventInput) =>
         api.post<HangoutEvent>("/events/", data).then((r) => r.data),
     remove: (id: number) =>
         api.delete<void>(`/events/${id}/`).then(() => undefined),

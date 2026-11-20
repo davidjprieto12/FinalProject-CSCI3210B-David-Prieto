@@ -17,6 +17,7 @@ export interface HangoutEvent {
     max_attendees: number | null;
     going_count: number;
     my_rsvp: RsvpResponse | null;
+    board: number;
 }
 
 export interface EventInput {
@@ -35,3 +36,7 @@ export interface EventFilters {
 }
 
 export const EMPTY_FILTERS: EventFilters = { search: "", status: "" };
+
+export interface NewEventInput extends EventInput {
+    board: number;
+}

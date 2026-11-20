@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { eventsApi } from "../api/events";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -8,11 +8,14 @@ import type { EventStatus, RsvpResponse, EventInput, EventFilters } from "../typ
 import { EMPTY_FILTERS } from "../types/event";
 
 // Fetches a list of events
-export const useEvents = (filters: EventFilters = EMPTY_FILTERS) =>
+export const useEvents = (boardId: number, filters: EventFilters = EMPTY_FILTERS) =>
   useQuery({
-    queryKey: ["events", filters],
-    queryFn: () => eventsApi.list(filters),
-    placeholderData: keepPreviousData,
+    queryKey: ["events", boardId, filters],
+    queryFn: () => eventsApi.list(boardId, filters),
+    enabled: Number.isFinite(boardId),
+    // Keep old results while typing in the filter, but never show another board's events
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[1] === boardId ? previousData : undefined,
   });
 
 // Fetches one single and specific event

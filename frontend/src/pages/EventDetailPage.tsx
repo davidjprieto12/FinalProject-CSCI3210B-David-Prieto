@@ -5,6 +5,7 @@ import { CommentSection } from "../components/CommentSection";
 import { ActivitySection } from "../components/ActivitySection";
 import { useChangeStatus, useEvent, useRsvp } from "../hooks/useEvents";
 import { useAuth } from "../hooks/useAuth";
+import { useBoard } from "../hooks/useBoards";
 import { STATUS_LABELS } from "../types/status";
 import { displayName } from "../utils/users";
 import { isNotFound } from "../utils/errors";
@@ -14,6 +15,7 @@ export function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const eventId = Number(id);
   const { data: event, error, isLoading, isError } = useEvent(eventId);
+  const { data: board } = useBoard(event ? event.board : NaN);
   const changeStatus = useChangeStatus();
   const rsvp = useRsvp();
   const { user } = useAuth();
@@ -31,11 +33,11 @@ export function EventDetailPage() {
     );
   }
 
-  const canEdit = user?.role === "admin" || event.created_by === user?.id;
+  const canEdit = board?.my_role === "owner" || event.created_by === user?.id;
 
   return (
     <main className="event-detail">
-      <Link to="/">← Back to board</Link>
+      <Link to={`/boards/${event.board}`}>← Back to board</Link>
       <h1>{event.title}</h1>
       {canEdit && <Link to={`/events/${event.id}/edit`}>Edit</Link>}
       <section className="event-overview" aria-label="Event details">

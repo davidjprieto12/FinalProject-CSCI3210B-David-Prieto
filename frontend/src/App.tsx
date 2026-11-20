@@ -1,10 +1,11 @@
 import { Routes, Route } from "react-router-dom";
-import { EventsPage } from "./pages/EventsPage";
 import { NewEventPage } from "./pages/NewEventPage";
 import { EventDetailPage } from "./pages/EventDetailPage";
 import { LoginPage } from "./pages/LoginPage";
 import { EditEventPage } from "./pages/EditEventPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { BoardPage } from "./pages/BoardPage";
+import { BoardsPage } from "./pages/BoardsPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export default function App() {
@@ -12,7 +13,11 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<EventsPage />} />
+        <Route path="/" element={<BoardsPage />} />
+        <Route path="/boards/:boardId" element={<BoardPage />} />
+        <Route path="/boards/:boardId/events/new" element={<NewEventPage />} />
+        <Route path="/events/:id" element={<EventDetailPage />} />
+        <Route path="/events/:id/edit" element={<EditEventPage />} />
       </Route>
       <Route path="/events/new" element={<NewEventPage/>} />
       <Route path="/events/:id" element={<EventDetailPage />} />
