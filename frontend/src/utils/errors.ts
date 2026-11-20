@@ -16,6 +16,9 @@ export function parseApiError(error: unknown): ParsedError {
     }
     const data: unknown = error.response.data;
     if (error.response.status === 400 && typeof data === "object" && data !== null) {
+        if ("detail" in data && typeof data.detail === "string") {
+            return { message: data.detail, fields: {} };
+        }
         return { message: null, fields: data as FieldErrors };
     }
     if (typeof data === "object" && data !== null && "detail" in data && typeof data.detail === "string") {

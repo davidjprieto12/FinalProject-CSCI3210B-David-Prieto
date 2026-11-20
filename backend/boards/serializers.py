@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Board
+from .models import Board, Membership
 
 
 class BoardSerializer(serializers.ModelSerializer):
@@ -16,3 +16,16 @@ class BoardSerializer(serializers.ModelSerializer):
 
 class JoinBoardSerializer(serializers.Serializer):
     invite_code = serializers.CharField(max_length=64)
+
+class MemberUserSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+    display_name = serializers.CharField()
+
+
+class MemberSerializer(serializers.ModelSerializer):
+    user = MemberUserSerializer(read_only=True)
+
+    class Meta:
+        model = Membership
+        fields = ["user", "role", "joined_at"]
