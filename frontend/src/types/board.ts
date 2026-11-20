@@ -17,3 +17,9 @@ export interface BoardInput {
 export interface JoinBoardInput {
   invite_code: string;
 }
+
+export interface BoardMember {
+  user: { id: number; username: string; display_name: string };
+  role: BoardRole;
+  joined_at: string;
+}

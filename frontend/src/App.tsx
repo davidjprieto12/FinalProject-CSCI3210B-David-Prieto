@@ -7,6 +7,7 @@ import { NotFoundPage } from "./pages/NotFoundPage";
 import { BoardPage } from "./pages/BoardPage";
 import { BoardsPage } from "./pages/BoardsPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { BoardSettingsPage } from "./pages/BoardSettingsPage";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<BoardsPage />} />
         <Route path="/boards/:boardId" element={<BoardPage />} />
+        <Route path="/boards/:boardId/settings" element={<BoardSettingsPage />}/>
         <Route path="/boards/:boardId/events/new" element={<NewEventPage />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
         <Route path="/events/:id/edit" element={<EditEventPage />} />
