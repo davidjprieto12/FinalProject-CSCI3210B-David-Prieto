@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Board } from "../components/Board";
 import { FilterBar } from "../components/FilterBar";
@@ -19,6 +19,7 @@ import { NotFoundPage } from "./NotFoundPage";
 export function BoardPage() {
   const { boardId } = useParams<{ boardId: string }>();
   const id = Number(boardId);
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { data: board, error: boardError } = useBoard(id);
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
@@ -59,7 +60,13 @@ export function BoardPage() {
   return (
     <main>
      <h1>{board?.name ?? "Board"}</h1>
-     <Link to={`/boards/${id}/events/new`}>New event</Link>
+     <button
+       className="powder-outline-action board-new-event"
+       type="button"
+       onClick={() => navigate(`/boards/${id}/events/new`)}
+     >
+       New event
+     </button>
 
       {board && (
         <p>

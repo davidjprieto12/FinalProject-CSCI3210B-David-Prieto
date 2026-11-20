@@ -128,7 +128,7 @@ button[aria-pressed="true"] {
   padding: 0.45rem 0.65rem;
 }
 
-.main-page-link {
+.powder-outline-action {
   display: inline-flex;
   min-height: 2.65rem;
   align-items: center;
@@ -142,11 +142,15 @@ button[aria-pressed="true"] {
   transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
 }
 
-.main-page-link:hover {
+.powder-outline-action:hover:not(:disabled) {
   border-color: #e0edf5;
   color: #edf6fc;
   background: rgba(169, 199, 220, 0.15);
   transform: translateY(-1px);
+}
+
+.board-new-event {
+  margin: 0 0 1.25rem;
 }
 
 .app-shell-account {

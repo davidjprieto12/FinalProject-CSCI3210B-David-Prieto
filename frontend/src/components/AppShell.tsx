@@ -14,7 +14,7 @@ export function AppShell() {
     <>
       <header className="app-shell-header">
         <nav className="app-shell-nav" aria-label="Main">
-          <Link className="main-page-link" to="/">Main Page</Link>
+          <Link className="powder-outline-action" to="/">Main Page</Link>
           {boards && boards.length > 0 && (
             <div className="app-shell-board-picker">
               <label htmlFor="board-switcher">Current Board:</label>
