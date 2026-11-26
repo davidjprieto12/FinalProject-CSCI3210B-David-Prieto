@@ -5,4 +5,5 @@ export interface EventComment {
     author: User;
     body: string;
     created_at: string;
+    edited_at: string | null;
 }

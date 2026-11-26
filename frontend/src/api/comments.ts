@@ -6,4 +6,7 @@ export const commentsApi = {
         api.get<EventComment[]>(`/events/${eventId}/comments/`).then((r) => r.data),
     add: (eventId: number, body: string) =>
         api.post<EventComment>(`events/${eventId}/comments/`, { body }).then((r) => r.data),
+    update: (id: number, body: string) =>
+        api.patch<EventComment>(`/comments/${id}/`, { body }).then((r) => r.data),
+    remove: (id: number) => api.delete<void>(`/comments/${id}/`).then(() => undefined),
 };

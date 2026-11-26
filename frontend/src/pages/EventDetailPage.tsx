@@ -62,7 +62,10 @@ export function EventDetailPage() {
         onChange={(response) => rsvp.mutate({ id: event.id, response })}
         disabled={rsvp.isPending}
       />
-      <CommentSection eventId={event.id} />
+      <CommentSection 
+      eventId={event.id} 
+      isBoardOwner={board?.my_role === "owner"}
+      />
       <ActivitySection eventId={event.id} />
     </main>
   );
