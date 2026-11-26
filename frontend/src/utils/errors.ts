@@ -14,6 +14,16 @@ export function parseApiError(error: unknown): ParsedError {
     if (!error.response) {
         return { message: "Can't reach the server.", fields: {} };
     }
+    if (error.response.status === 429) {
+        const wait = Number(error.response.headers["retry-after"]);
+        return {
+        message:
+            Number.isFinite(wait) && wait > 0
+            ? `Too many attempts. Please try again in ${wait} seconds.`
+            : "Too many attempts. Please wait a moment and try again.",
+        fields: {},
+    };
+  }
     const data: unknown = error.response.data;
     if (error.response.status === 400 && typeof data === "object" && data !== null) {
         if ("detail" in data && typeof data.detail === "string") {

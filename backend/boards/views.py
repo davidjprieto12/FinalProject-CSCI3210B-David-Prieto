@@ -1,12 +1,14 @@
 from django.db import transaction
 from django.db.models import Count, OuterRef, Subquery
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from .models import Board, Membership, generate_invite_code
 from .serializers import BoardSerializer, JoinBoardSerializer, MemberSerializer
@@ -25,6 +27,7 @@ class BoardViewSet(
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     serializer_class = BoardSerializer
     permission_classes = [IsAuthenticated]
+    throttle_scope = None
 
     def get_queryset(self):
         user = self.request.user
@@ -94,6 +97,11 @@ class BoardViewSet(
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def create(self, request, *args, **kwargs):
+        if Board.objects.filter(owner=request.user).count() >= settings.MAX_BOARDS_PER_USER:
+            raise ValidationError(
+                {"detail": f"You can own up to {settings.MAX_BOARDS_PER_USER} boards."}
+            )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         with transaction.atomic():  # the board and its owner membership are saved together
@@ -101,7 +109,7 @@ class BoardViewSet(
             Membership.objects.create(board=board, user=request.user, role=Membership.Role.OWNER)
         return Response(self._fresh(board.pk), status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], throttle_classes=[ScopedRateThrottle], throttle_scope="join")
     def join(self, request):
         serializer = JoinBoardSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

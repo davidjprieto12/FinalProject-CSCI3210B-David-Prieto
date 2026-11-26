@@ -3,6 +3,8 @@ from rest_framework.test import APITestCase
 from accounts.models import User
 from .models import Board, Membership
 from events.models import Event, RSVP
+from django.conf import settings
+from django.core.cache import cache
 
 
 def make_board(owner, name="Test board"):
@@ -13,6 +15,7 @@ def make_board(owner, name="Test board"):
 
 class BoardApiTests(APITestCase):
     def setUp(self):
+        cache.clear()
         self.alex = User.objects.create_user(username="alex", password="testpass123")
         self.sam = User.objects.create_user(username="sam", password="testpass123")
         self.client.force_authenticate(self.alex)
@@ -54,8 +57,15 @@ class BoardApiTests(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("invite_code", response.data)
 
+    def test_board_cap_is_enforced(self):
+        for i in range(settings.MAX_BOARDS_PER_USER):
+            make_board(self.alex, name=f"Board {i}")
+        response = self.client.post("/api/boards/", {"name": "One too many"}, format="json")
+        self.assertEqual(response.status_code, 400)
+
 class BoardManagementTests(APITestCase):
     def setUp(self):
+        cache.clear()
         self.owner = User.objects.create_user(username="owner", password="testpass123")
         self.member = User.objects.create_user(username="member", password="testpass123")
         self.board = make_board(self.owner)

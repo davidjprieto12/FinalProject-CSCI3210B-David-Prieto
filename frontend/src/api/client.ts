@@ -29,6 +29,8 @@ api.interceptors.response.use(
                 if (window.location.pathname !== "/login") window.location.assign("/login");
             } else if (status === 403) {
                 toast.error("You don't have permission to do that.");
+            } else if (status === 429) {
+                toast.error("You're doing that too fast. Please wait a moment.");
             } else if (status === 404) {
                 toast.error("That item was not found.");
             } else if (status !== undefined && status >= 500) {

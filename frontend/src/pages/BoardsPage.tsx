@@ -20,7 +20,8 @@ export function BoardsPage() {
       navigate(`/boards/${board.id}`);
       return true;
     } catch (e) {
-      setCreateError(parseApiError(e).fields.name?.[0] ?? null);
+      const parsed = parseApiError(e);
+      setCreateError(parsed.fields.name?.[0] ?? parsed.message);
       return false;
     }
   };

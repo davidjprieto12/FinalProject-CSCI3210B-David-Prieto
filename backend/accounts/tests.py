@@ -30,3 +30,34 @@ class RegisterTests(APITestCase):
     def test_duplicate_username_is_rejected(self):
         self.register()
         self.assertEqual(self.register().status_code, 400)
+
+class ThrottleTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+
+    def test_login_is_rate_limited(self):
+        for _ in range(10):
+            response = self.client.post(
+                "/api/auth/login/", {"username": "x", "password": "y"}, format="json"
+            )
+            self.assertEqual(response.status_code, 401)
+        blocked = self.client.post(
+            "/api/auth/login/", {"username": "x", "password": "y"}, format="json"
+        )
+        self.assertEqual(blocked.status_code, 429)
+        self.assertIn("Retry-After", blocked)
+
+    def test_registration_is_rate_limited(self):
+        for i in range(5):
+            response = self.client.post(
+                "/api/auth/register/",
+                {"username": f"user{i}", "display_name": "U", "password": "Maple-River-7421"},
+                format="json",
+            )
+            self.assertEqual(response.status_code, 201)
+        blocked = self.client.post(
+            "/api/auth/register/",
+            {"username": "user99", "display_name": "U", "password": "Maple-River-7421"},
+            format="json",
+        )
+        self.assertEqual(blocked.status_code, 429)

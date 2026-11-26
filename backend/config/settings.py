@@ -123,7 +123,22 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/min",     # generous defaults: these only stop floods
+        "user": "600/min",
+        "login": "10/min",     # strict scopes for the endpoints attackers target
+        "register": "5/hour",
+        "join": "10/min",
+    },
 }
+
+CORS_EXPOSE_HEADERS = ["Retry-After"]   # lets the browser read how long to wait
+
+MAX_BOARDS_PER_USER = 10
 
 SIMPLE_JWT = {"ACCESS_TOKEN_LIFETIME": timedelta(hours=12)}
 

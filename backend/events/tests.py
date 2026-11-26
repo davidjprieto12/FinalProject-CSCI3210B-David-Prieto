@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
+from django.core.cache import cache
 
 from rest_framework.exceptions import ValidationError, NotFound
 from rest_framework.test import APITestCase
@@ -265,6 +266,7 @@ class EventFilterTests(APITestCase):
 
 class BoardIsolationTests(APITestCase):
     def setUp(self):
+        cache.clear()
         self.alex = User.objects.create_user(username="alex", password="testpass123")
         self.sam = User.objects.create_user(username="sam", password="testpass123")
         self.alex_board = make_board(self.alex)
