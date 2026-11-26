@@ -1,15 +1,16 @@
 from django.shortcuts import render
 from django.db.models import Count, OuterRef, Q, Subquery
 from django.db import transaction
+from django.utils import timezone
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from . import services
-from .permissions import IsCreatorOrBoardOwner
-from .models import Event, RSVP, ActivityLog
+from .permissions import IsCreatorOrBoardOwner, IsCommentAuthorOrBoardOwner
+from .models import Event, RSVP, ActivityLog, Comment
 from .serializers import EventSerializer, TransitionSerializer, RSVPInputSerializer, CommentSerializer, ActivityLogSerializer
 
 from django_filters.rest_framework import DjangoFilterBackend
@@ -94,3 +95,17 @@ class EventViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         queryset = event.comments.select_related("author")
         return Response(CommentSerializer(queryset, many=True).data)
+
+class CommentViewSet(mixins.UpdateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated, IsCommentAuthorOrBoardOwner]
+    http_method_names = ["patch", "delete", "head", "options"]
+
+    def get_queryset(self):
+        # Only comments on boards the user belongs to; everything else is a 404
+        return Comment.objects.select_related("author", "event").filter(
+            event__board_id__in=Membership.objects.filter(user=self.request.user).values("board_id")
+        )
+
+    def perform_update(self, serializer):
+        serializer.save(edited_at=timezone.now())

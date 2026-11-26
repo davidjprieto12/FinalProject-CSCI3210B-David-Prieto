@@ -65,10 +65,12 @@ class RSVPInputSerializer(serializers.Serializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
+    edited_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Comment
-        fields = ["id", "author", "body", "created_at"]
+        fields = ["id", "author", "body", "created_at", "edited_at"]
+        read_only_fields = ["edited_at"]
         extra_kwargs = {"body": {"max_length": 1000}}
 
 class ActivityLogSerializer(serializers.ModelSerializer):

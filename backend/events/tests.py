@@ -8,7 +8,7 @@ from rest_framework.test import APITestCase
 
 from accounts.models import User
 from boards.models import Board, Membership
-from .models import ActivityLog, Event, RSVP
+from .models import ActivityLog, Event, RSVP, Comment
 from .services import change_status, remove_rsvp, set_rsvp
 
 from io import StringIO
@@ -337,3 +337,45 @@ class BoardIsolationTests(APITestCase):
         self.assertEqual(self.client.delete(url).status_code, 403)
         self.client.force_authenticate(self.alex)  # Alex is the creator and the owner
         self.assertEqual(self.client.delete(url).status_code, 204)
+
+class CommentEditTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.owner = User.objects.create_user(username="owner", password="testpass123")
+        self.author = User.objects.create_user(username="author", password="testpass123")
+        self.other = User.objects.create_user(username="other", password="testpass123")
+        board = make_board(self.owner)
+        for user in (self.author, self.other):
+            Membership.objects.create(board=board, user=user)
+        event = make_event(title="Pizza", board=board, created_by=self.owner)
+        self.comment = Comment.objects.create(event=event, author=self.author, body="Original")
+        self.url = f"/api/comments/{self.comment.pk}/"
+
+    def test_author_can_edit_and_it_is_marked_edited(self):
+        self.client.force_authenticate(self.author)
+        response = self.client.patch(self.url, {"body": "Changed"}, format="json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["body"], "Changed")
+        self.assertIsNotNone(response.data["edited_at"])
+
+    def test_nobody_else_can_edit_not_even_the_owner(self):
+        for user in (self.other, self.owner):
+            self.client.force_authenticate(user)
+            self.assertEqual(
+                self.client.patch(self.url, {"body": "Hijack"}, format="json").status_code, 403
+            )
+
+    def test_delete_allowed_for_author_and_owner_only(self):
+        self.client.force_authenticate(self.other)
+        self.assertEqual(self.client.delete(self.url).status_code, 403)
+        self.client.force_authenticate(self.owner)
+        self.assertEqual(self.client.delete(self.url).status_code, 204)
+
+    def test_non_member_gets_404(self):
+        outsider = User.objects.create_user(username="outsider", password="testpass123")
+        self.client.force_authenticate(outsider)
+        self.assertEqual(self.client.patch(self.url, {"body": "x"}, format="json").status_code, 404)
+
+    def test_blank_edit_is_rejected(self):
+        self.client.force_authenticate(self.author)
+        self.assertEqual(self.client.patch(self.url, {"body": "  "}, format="json").status_code, 400)

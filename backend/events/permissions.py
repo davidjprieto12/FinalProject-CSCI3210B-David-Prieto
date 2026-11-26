@@ -13,3 +13,13 @@ class IsCreatorOrBoardOwner(BasePermission):
         return Membership.objects.filter(
             board_id=obj.board_id, user=request.user, role=Membership.Role.OWNER
         ).exists()
+
+class IsCommentAuthorOrBoardOwner(BasePermission):
+    # Only the author edits; the author or the board's owner can delete.
+
+    def has_object_permission(self, request, view, obj):
+        if obj.author_id == request.user.id:
+            return True
+        return request.method == "DELETE" and Membership.objects.filter(
+            board_id=obj.event.board_id, user=request.user, role=Membership.Role.OWNER
+        ).exists()
